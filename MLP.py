@@ -24,14 +24,15 @@ def treinamento(x, y, iteracoes, nNeuronios):
     (w3,b3) = inicializaWeB(nNeuronios,nNeuronios)
     (w4,b4) = inicializaWeB(nNeuronios,nNeuronios)
     (w5,b5) = inicializaWeB(nNeuronios,10)
-
+    
     for iteracao in range(iteracoes):
+        print(f"\r{iteracao+1}/{iteracoes}", end='', flush=True)
 
         #feedforward - retorno saida das 5 camadas
         (h1,h2,h3,h4,out) = feedforward(x,w1,w2,w3,w4,w5,b1,b2,b3,b4,b5)
 
         erroQuadratico = ((y-out)**2)/2
-       # print("Erro quadratico ",erroQuadratico)
+        #print("Erro quadratico ",erroQuadratico)
 
         #calcula erro e gradiente da camada 5
         layer5_error = y - out
@@ -117,22 +118,66 @@ def leArquivo(path):
 
     return (x,y,dim,classe)
 
+def gravaArquivoNN(nomeArquivo,layers, biases):
+    with open(nomeArquivo, mode='w') as arquivo:
+        i = 1
+        for l, b in zip(layers, biases):
+            arquivo.write(f"camada{i}\n")
+            arquivo.write(f"entrada {l.shape[1]}\n")
+            arquivo.write(f"saida  {l.shape[0]}\n")
+            arquivo.write('W\n')
+            for line in l:
+                for entradaParcial in line:
+                    arquivo.write(f' {entradaParcial}')
+                arquivo.write('\n')    
+
+            arquivo.write('b\n')
+            for element in b:
+                arquivo.write(f' {element}')
+            arquivo.write('\n')
+            arquivo.write('ativacao sigmoid\n')
+            arquivo.write('--\n')
+
+            i += 1
+
 
 #--------------------------------MAIN---------------------------------#
-(xTrain,yTrain,dim,classe) = leArquivo('train.csv')
+(xTrain,yTrain,dim,classe) = leArquivo('mnist_train.csv')
 X = np.array(xTrain)
 Y = np.array(yTrain)
-(w1,w2,w3,w4,w5,b1,b2,b3,b4,b5) = treinamento(X,Y,10000,100) 
 
-(xTest,yTest,dim,classe) = leArquivo('test.csv')
+(w1,w2,w3,w4,w5,b1,b2,b3,b4,b5) = treinamento(X,Y,350000,40) 
+(h1,h2,h3,h4,out) = feedforward(X,w1,w2,w3,w4,w5,b1,b2,b3,b4,b5)
+
+(xTest,yTest,dim,classe) = leArquivo('mnist_test.csv')
 X = np.array(xTest)
 Y = np.array(yTest)
+
+wFinal = []
+wFinal.append(w1)
+wFinal.append(w2)
+wFinal.append(w3)
+wFinal.append(w4)
+wFinal.append(w5)
+
+bFinal = []
+bFinal.append(b1)
+bFinal.append(b2)
+bFinal.append(b3)
+bFinal.append(b4)
+bFinal.append(b5)
+
 (h1,h2,h3,h4,out) = feedforward(X,w1,w2,w3,w4,w5,b1,b2,b3,b4,b5)
 
 v = 0
 f = 0
 resultPredict = 0
 resultExpected = 0
+
+tp = 0
+tn = 0
+fp = 0
+fn = 0
 
 for i in range(len(out)):
     maior = 0
@@ -151,30 +196,27 @@ for i in range(len(out)):
             maior = Y[i][k]
             resultExpected = k 
     
-    #incrementa se acertou ou errou
-    if resultPredict == resultExpected:
-        v += 1
-    else:
-        f += 1
-
-""" for i in range(len(out)):
-    resultPredict = np.where(out[i] == np.amax(out[i]))
-    resultExpected = np.where(Y[i] == np.amax(Y[i]))
-
-    if resultPredict.shape != resultExpected.shape:
-        for j in range(resultExpected):
-            if resultPredict[j] == resultExpected:
-                v += 1
-            else:
-                f += 1
-    else:        
-        if resultPredict == resultExpected:
-            v += 1
+    for x in range(10):
+        if resultPredict == x :
+            if resultExpected == x:
+                tp += 1
+            else :
+                fp += 1
         else:
-            f += 1 """
+            if resultExpected == x:
+                fn += 1
+            else :
+                tn += 1
 
-print('Precisao ',v/(v+f) * 100, '%')
+print('\nPrecisao ',tp/(tp+fp) * 100, '%')
+print('Recall ',tp/(tp+fn) * 100, '%')
+print('Acuracia ',(tp+tn)/(tp+fp+tn+fn) * 100, '%')
+print('tp ',tp)
+print('tn ',tn)
+print('fp ',fp)
+print('fn ',fn)
 
+gravaArquivoNN("saida_NN.txt",wFinal,bFinal)
 
 
 
